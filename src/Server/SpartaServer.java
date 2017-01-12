@@ -1,5 +1,6 @@
 package Server;
 
+import javax.management.remote.rmi.RMIServer;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -9,13 +10,13 @@ import java.util.ArrayList;
 /**
  * Created by Miquel on 14.12.2016.
  */
-public class RMIServer extends UnicastRemoteObject implements ServerInterface {
+public class SpartaServer extends UnicastRemoteObject implements ServerInterface {
 
     ArrayList<Match> matches = new ArrayList<Match>();
     int nextId = 0;
 
 
-    public RMIServer() throws RemoteException {
+    public SpartaServer() throws RemoteException {
         super(1098);
     }
 
@@ -28,17 +29,9 @@ public class RMIServer extends UnicastRemoteObject implements ServerInterface {
     @Override
     public ClientData findGame(ClientData cd) throws RemoteException {
         for(Match m : matches){
-            if(m.has2()) {
-                System.out.println(m.getKey().getIp() + ":" + m.getKey().getId() + " - " + m.get2().getIp() + ":" + m.get2().getId());
-            } else {
-                System.out.println(m.getKey().getIp() + ":" + m.getKey().getId() + " - null");
-            }
-            System.out.println();
-        }
-
-        for(Match m : matches){
             if(m.getKey().isSame(cd)){
                 if(m.has2()){
+                    System.out.println("Match made: " + m.getKey().getIp() + ":" + m.getKey().getId() + " - " +cd.getIp() + ":" + cd.getIp());
                     return m.get2();
                 } else {
                     return null;
@@ -48,12 +41,14 @@ public class RMIServer extends UnicastRemoteObject implements ServerInterface {
 
         for(Match m : matches){
             if(!m.has2()){
+                System.out.println("New client from "+cd.getIp() + ":" + cd.getId());
                 m.set2(cd);
                 return m.getKey();
             }
         }
 
         Match m = new Match(cd);
+        System.out.println("New client from "+cd.getIp() + ":" + cd.getId());
         matches.add(m);
         return null;
     }
@@ -72,10 +67,10 @@ public class RMIServer extends UnicastRemoteObject implements ServerInterface {
 
         //Instantiate RmiServer
 
-        RMIServer rmiServer = new RMIServer();
+        SpartaServer spartaServer = new SpartaServer();
 
         // Bind this object instance to the name "RmiServer"
-        Naming.rebind("//web.janho.nen/spartaServer", rmiServer);
+        Naming.rebind("//localhost/spartaServer", spartaServer);
         System.out.println("RmiServer created and available");
     }
 

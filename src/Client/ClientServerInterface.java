@@ -10,6 +10,6 @@ import java.rmi.RemoteException;
  */
 public interface ClientServerInterface extends Remote {
 
-    public String testConnection(String s) throws RemoteException;
+    public String introduce(String s) throws RemoteException;
     public ResultData makeAnAction(SpartaAction spartaAction) throws RemoteException;
 }
