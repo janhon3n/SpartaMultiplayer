@@ -16,7 +16,7 @@ public class RMIServer extends UnicastRemoteObject implements ServerInterface {
 
 
     public RMIServer() throws RemoteException {
-        super(0);
+        super(1098);
     }
 
 
@@ -75,7 +75,7 @@ public class RMIServer extends UnicastRemoteObject implements ServerInterface {
         RMIServer rmiServer = new RMIServer();
 
         // Bind this object instance to the name "RmiServer"
-        Naming.rebind("//localhost/spartaServer", rmiServer);
+        Naming.rebind("//web.janho.nen/spartaServer", rmiServer);
         System.out.println("RmiServer created and available");
     }
 
