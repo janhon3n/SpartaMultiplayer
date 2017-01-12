@@ -31,7 +31,7 @@ public class SpartaServer extends UnicastRemoteObject implements ServerInterface
         for(Match m : matches){
             if(m.getKey().isSame(cd)){
                 if(m.has2()){
-                    System.out.println("Match made: " + m.getKey().getIp() + ":" + m.getKey().getId() + " - " +cd.getIp() + ":" + cd.getIp());
+                    System.out.println("Match made: " + m.getKey().getIp() + ":" + m.getKey().getId() + " - " +cd.getIp() + ":" + cd.getId());
                     return m.get2();
                 } else {
                     return null;
