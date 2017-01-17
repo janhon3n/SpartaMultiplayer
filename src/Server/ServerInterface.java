@@ -8,6 +8,7 @@ package Server;
  */
 public interface ServerInterface extends Remote {
     public int getId() throws RemoteException;
-    public ClientData findGame(ClientData ip) throws RemoteException;
+    public ClientData findGame(ClientData cd) throws RemoteException;
+    public void removeClient(ClientData cd) throws RemoteException;
 }
 

@@ -17,19 +17,18 @@ import java.util.Scanner;
  */
 public class SpartaClient extends UnicastRemoteObject implements ClientServerInterface {
 
-    Scanner testScanner;
+    private Scanner sc;
     ClientData ownClientData;
     ClientData opponentClientData;
     ServerInterface spartaServer;
     boolean myTurn;
     boolean closeGame = false;
     Registry serverRmiRegistry;
+    boolean interruptGameSearch = false;
 
-    public SpartaClient() throws RemoteException, NotBoundException, MalformedURLException, InterruptedException, UnknownHostException {
-        this.testScanner = new Scanner(System.in);
-
+    public SpartaClient(Scanner sc) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException, UnknownHostException {
+        this.sc = sc;
         System.out.println("Connecting to server...");
-
         serverRmiRegistry = LocateRegistry.getRegistry("192.168.100.40", 1099);
 
         spartaServer = (ServerInterface) serverRmiRegistry.lookup("spartaServer");
@@ -42,10 +41,17 @@ public class SpartaClient extends UnicastRemoteObject implements ClientServerInt
 
     private ClientData getMatchFromServer() throws RemoteException, InterruptedException {
         System.out.println("Looking for an opponent...");
+
+        InterruptGameSearch igs = new InterruptGameSearch(sc, this);
+        igs.start();
         ClientData ocd = spartaServer.findGame(ownClientData);
         while (ocd == null) {
             Thread.sleep(1000);
             ocd = spartaServer.findGame(ownClientData);
+            if(interruptGameSearch && ocd == null){
+                spartaServer.removeClient(ownClientData);
+                throw new InterruptedException("User interrupted game search");
+            }
         }
         System.out.println("Opponent found at: " + ocd.getIp() + ":" + ocd.getId());
         return ocd;
@@ -92,7 +98,7 @@ public class SpartaClient extends UnicastRemoteObject implements ClientServerInt
                 Thread.sleep(200);
                 //ask user input
                 System.out.print("Send message to opponent: ");
-                String msg = testScanner.nextLine();
+                String msg =  "testi";
                 //create SpartaAction object to hold data
                 SpartaAction sa = new SpartaAction(0, msg);
                 //send object to opponent
@@ -121,36 +127,7 @@ public class SpartaClient extends UnicastRemoteObject implements ClientServerInt
         return null;
     }
 
-
-    public static void main(String args[]) {
-        SpartaClient spartaClient;
-        try {
-            spartaClient = new SpartaClient();
-        } catch (ConnectException ce){
-            System.out.println("Server is not responding :(");
-            ce.printStackTrace();
-            return;
-        } catch (Exception e) {
-            System.out.println("Program is not working right. Pls fix.");
-            e.printStackTrace();
-            return;
-        }
-
-        try {
-            spartaClient.createConnectionToOpponent();
-        } catch (RemoteException re) {
-            re.printStackTrace();
-            //yritä uudestaan 5 kertaa ja palaa valikkoon
-        } catch (MalformedURLException mue) {
-            mue.printStackTrace();
-            //palaa valikkoon
-        } catch (NotBoundException nbe) {
-            nbe.printStackTrace();
-            //palaa valikkoon
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (AlreadyBoundException e) {
-            e.printStackTrace();
-        }
+    public void interruptGameSearch(){
+        this.interruptGameSearch = true;
     }
 }
