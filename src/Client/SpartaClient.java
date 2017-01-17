@@ -9,7 +9,6 @@ import java.net.UnknownHostException;
 import java.rmi.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.rmi.server.RMISocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Scanner;
 
@@ -24,16 +23,16 @@ public class SpartaClient extends UnicastRemoteObject implements ClientServerInt
     ServerInterface spartaServer;
     boolean myTurn;
     boolean closeGame = false;
-    Registry rmiRegistry;
+    Registry serverRmiRegistry;
 
     public SpartaClient() throws RemoteException, NotBoundException, MalformedURLException, InterruptedException, UnknownHostException {
         this.testScanner = new Scanner(System.in);
 
         System.out.println("Connecting to server...");
 
-        rmiRegistry = LocateRegistry.getRegistry("192.168.100.40", 1099);
+        serverRmiRegistry = LocateRegistry.getRegistry("192.168.100.40", 1099);
 
-        spartaServer = (ServerInterface) rmiRegistry.lookup("spartaServer");
+        spartaServer = (ServerInterface) serverRmiRegistry.lookup("spartaServer");
         String ip = Inet4Address.getLocalHost().getHostAddress();
         int id = spartaServer.getId();
         ownClientData = new ClientData(id, ip);
@@ -55,14 +54,23 @@ public class SpartaClient extends UnicastRemoteObject implements ClientServerInt
     public void createConnectionToOpponent() throws RemoteException, NotBoundException, MalformedURLException, InterruptedException, AlreadyBoundException {
         System.out.println("Creating RMI ClientServer");
 
+        // Create RMI registry to local machine
+        try { //special exception handler for registry creation
+            LocateRegistry.createRegistry(1099);
+            System.out.println("java RMI registry created.");
+        } catch (RemoteException e) {
+            //do nothing, error means registry already exists
+            System.out.println("java RMI registry already exists.");
+        }
+        Registry localRmiRegistry = LocateRegistry.getRegistry("localhost");
+
         // Bind this object instance to the name "RmiServer"
-        rmiRegistry.bind("spartaClientServer"+ownClientData.getId(), this);
+        localRmiRegistry.bind("spartaClientServer"+ownClientData.getId(), this);
         System.out.println("ClientServer created and added to registry");
         Thread.sleep(1200);
 
         System.out.println("Trying to access opponents RMI object at the registry");
-        ClientServerInterface opponentClientServer = (ClientServerInterface) rmiRegistry.lookup("spartaClientServer"+opponentClientData.getId());
-
+        ClientServerInterface opponentClientServer = (ClientServerInterface) Naming.lookup("//" + opponentClientData.getIp() + "/spartaClientServer"+opponentClientData.getId());
 
         if (ownClientData.getId() > opponentClientData.getId()) {
             myTurn = true;
