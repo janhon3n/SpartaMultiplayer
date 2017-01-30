@@ -28,7 +28,7 @@ public class Pelaaja extends Hahmo {
         this.pelaaja_XP = 0;
         this.pelaaja_Taso = 1;
         this.pelaaja_Raha = 0;
-        this.pelaaja_Arvo = 0;
+        this.pelaaja_Arvo = 1;
     }
 
     //Luo pelaajan annetulla nimella ja asettaa sille oletusstatsit.
@@ -48,7 +48,7 @@ public class Pelaaja extends Hahmo {
         this.pelaaja_XP = 0;
         this.pelaaja_Taso = 1;
         this.pelaaja_Raha = 0;
-        this.pelaaja_Arvo = 0;
+        this.pelaaja_Arvo = 1;
     }
 
 
@@ -287,8 +287,8 @@ public class Pelaaja extends Hahmo {
     public int[] voittoPalkkiot() {
         int[] palkkiot = new int[2];	//Sisaltaa pelaajan antaman XP:n ja rahan
 
-        palkkiot[0] = this.pelaaja_XP/20*this.pelaaja_Arvo;		//Generoi saadun XP:n maaran
-        palkkiot[1] = this.pelaaja_XP/200*this.pelaaja_Arvo;	//Generoi saadun rahan maaran
+        palkkiot[0] = (this.pelaaja_XP+1)/20*this.pelaaja_Arvo;		//Generoi saadun XP:n maaran
+        palkkiot[1] = (this.pelaaja_XP+1)/200*this.pelaaja_Arvo;	//Generoi saadun rahan maaran
 
         return palkkiot;
     }
@@ -360,7 +360,7 @@ public class Pelaaja extends Hahmo {
      * Metodi laskee pelaajan arvoa yhdella, kunhan se on yli 0.
      */
     public void laskeArvoa() {
-        if(this.pelaaja_Arvo > 0) {
+        if(this.pelaaja_Arvo > 1) {
             this.pelaaja_Arvo = this.pelaaja_Arvo -1;
             System.out.println("Hahmosi arvo laski yhdellä.");
         }

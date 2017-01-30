@@ -12,6 +12,10 @@ public class SpartaAction implements Serializable {
     private boolean crithit;
     private String message;
 
+
+    public SpartaAction(){
+    }
+
     /* lyönti */
     public SpartaAction(int damage, boolean crithit, String message){
         this.typeOfAction = 0;
@@ -26,6 +30,7 @@ public class SpartaAction implements Serializable {
         this.message = message;
     }
 
+
     public void setTypeOfAction(int toa){
         this.typeOfAction = toa;
     }
@@ -35,6 +40,9 @@ public class SpartaAction implements Serializable {
 
     public String getMessage(){
         return message;
+    }
+    public void setMessage(String msg){
+        this.message = msg;
     }
     public double getDamage(){
         return damage;

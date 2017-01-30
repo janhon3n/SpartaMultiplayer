@@ -31,7 +31,7 @@ public class SpartaClient extends UnicastRemoteObject implements ClientServerInt
     public SpartaClient(Scanner sc, Pelaaja pelaaja) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException, UnknownHostException {
         this.sc = sc;
         this.pelaaja = pelaaja;
-        System.out.println("Connecting to server...");
+        System.out.println("Yhdistetään serveriin...");
         serverRmiRegistry = LocateRegistry.getRegistry("localhost", 1099);
 
         spartaServer = (ServerInterface) serverRmiRegistry.lookup("spartaServer");
@@ -44,8 +44,7 @@ public class SpartaClient extends UnicastRemoteObject implements ClientServerInt
     }
 
     private ClientData getMatchFromServer() throws RemoteException, InterruptedException {
-        System.out.println("Looking for an opponent...");
-
+        System.out.println("Etsitään vastustajaa...");
         Valikko v = new Valikko(sc);
         v.lisaaVaihtoehto(new Vaihtoehto("Jatka hakua") {
             @Override
@@ -167,12 +166,14 @@ public class SpartaClient extends UnicastRemoteObject implements ClientServerInt
             case 0: // lyönti
                 onlineTaistelu.attack(spartaAction);
                 break;
-            case 1:
+            case 1: // juo sparta
+                System.out.println(spartaAction.getMessage());
                 break;
-            case 2:
+            case 2: // toinen kuoli
                 onlineTaistelu.win(spartaAction);
                 break;
-            case 3:
+            case 3: // skippaa vuoro
+                System.out.println(spartaAction.getMessage());
                 break;
             default:
                 break;
