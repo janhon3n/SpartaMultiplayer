@@ -8,13 +8,22 @@ import java.io.Serializable;
 public class SpartaAction implements Serializable {
 
     private int typeOfAction;
+    private int damage;
+    private boolean crithit;
     private String message;
 
-    public SpartaAction(){
+    /* lyönti */
+    public SpartaAction(int damage, boolean crithit, String message){
+        this.typeOfAction = 0;
+        this.damage = damage;
+        this.crithit = crithit;
+        this.message = message;
     }
-    public SpartaAction(int toa, String msg){
-        this.message = msg;
-        this.typeOfAction = toa;
+
+    /* kuolema */
+    public SpartaAction(String message){
+        this.typeOfAction = 2;
+        this.message = message;
     }
 
     public void setTypeOfAction(int toa){
@@ -24,10 +33,10 @@ public class SpartaAction implements Serializable {
         return typeOfAction;
     }
 
-    public void setMessage(String msg){
-        this.message = msg;
-    }
     public String getMessage(){
-        return this.message;
+        return message;
+    }
+    public double getDamage(){
+        return damage;
     }
 }

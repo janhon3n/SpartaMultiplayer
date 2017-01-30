@@ -38,7 +38,8 @@ public class Peli {
         alustus();
         System.out.println("\nAloitetaan uusi peli.");
         System.out.print("Uuden sankarin nimi: ");
-        pelaaja = new Pelaaja(sc.next());
+        sc.nextLine();
+        pelaaja = new Pelaaja(sc.nextLine());
         this.edistyminen = 0;
 
         System.out.println("Erkki Kaila ystävineen on varastanut Viimeisen Spartan!\nTehtävänäsi on tuhota hanen imperiuminsa ja saada Viimeinen Sparta takaisin.");
@@ -135,7 +136,7 @@ public class Peli {
     public void aloitaMoninpeli() {
         SpartaClient spartaClient;
         try {
-            spartaClient = new SpartaClient(sc);
+            spartaClient = new SpartaClient(sc, this.pelaaja);
         } catch (ConnectException ce) {
             System.out.println("Server is not responding :(");
             ce.printStackTrace();
@@ -152,8 +153,12 @@ public class Peli {
         try {
             spartaClient.createConnectionToOpponent();
         } catch (Exception e){
+            e.printStackTrace();
             System.out.println("Yhteys vastustajaan katkesi");
         }
+
+        // palauta pelaajan elämät täyteen
+        pelaaja.asetaMaxElama();
     }
 
     //Sulkee pelin

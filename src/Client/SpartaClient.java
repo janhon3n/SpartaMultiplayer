@@ -1,5 +1,6 @@
 package Client;
 
+import Game.*;
 import Server.ClientData;
 import Server.ServerInterface;
 
@@ -18,18 +19,20 @@ import java.util.Scanner;
 public class SpartaClient extends UnicastRemoteObject implements ClientServerInterface {
 
     private Scanner sc;
-    ClientData ownClientData;
-    ClientData opponentClientData;
-    ServerInterface spartaServer;
-    boolean myTurn;
-    boolean closeGame = false;
-    Registry serverRmiRegistry;
-    boolean interruptGameSearch = false;
+    private ClientData ownClientData;
+    private ClientData opponentClientData;
+    private ServerInterface spartaServer;
+    private boolean closeGame = false;
+    private Registry serverRmiRegistry;
+    private OnlineTaistelu onlineTaistelu;
+    private Pelaaja pelaaja;
+    private boolean userInterrupted = false;
 
-    public SpartaClient(Scanner sc) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException, UnknownHostException {
+    public SpartaClient(Scanner sc, Pelaaja pelaaja) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException, UnknownHostException {
         this.sc = sc;
+        this.pelaaja = pelaaja;
         System.out.println("Connecting to server...");
-        serverRmiRegistry = LocateRegistry.getRegistry("192.168.100.40", 1099);
+        serverRmiRegistry = LocateRegistry.getRegistry("localhost", 1099);
 
         spartaServer = (ServerInterface) serverRmiRegistry.lookup("spartaServer");
         String ip = Inet4Address.getLocalHost().getHostAddress();
@@ -37,24 +40,54 @@ public class SpartaClient extends UnicastRemoteObject implements ClientServerInt
         ownClientData = new ClientData(id, ip);
         opponentClientData = getMatchFromServer();
         System.out.println("I am at " + ownClientData.getIp() + ":" + ownClientData.getId());
+        System.out.println("Opponent found at: " + opponentClientData.getIp() + ":" + opponentClientData.getId());
     }
 
     private ClientData getMatchFromServer() throws RemoteException, InterruptedException {
         System.out.println("Looking for an opponent...");
 
-        InterruptGameSearch igs = new InterruptGameSearch(sc, this);
-        igs.start();
-        ClientData ocd = spartaServer.findGame(ownClientData);
-        while (ocd == null) {
-            Thread.sleep(1000);
-            ocd = spartaServer.findGame(ownClientData);
-            if(interruptGameSearch && ocd == null){
-                spartaServer.removeClient(ownClientData);
-                throw new InterruptedException("User interrupted game search");
+        Valikko v = new Valikko(sc);
+        v.lisaaVaihtoehto(new Vaihtoehto("Jatka hakua") {
+            @Override
+            public void suorita() {
             }
+        });
+        v.lisaaVaihtoehto(new Vaihtoehto("Keskeytä haku"){
+            @Override
+            public void suorita() {
+                userInterruptedSearch();
+            }
+        });
+
+
+        ClientData ocd = lookForOpponent(10);
+        while(ocd == null){
+            v.tulosta();
+            v.pakotaValinta();
+            if(userInterrupted){
+                throw new InterruptedException("Käyttäjä keskeytti haun.");
+            }
+            ocd = lookForOpponent(10);
         }
-        System.out.println("Opponent found at: " + ocd.getIp() + ":" + ocd.getId());
+
+        //----------> OCD varmasti !null
+
         return ocd;
+    }
+
+    private ClientData lookForOpponent(int times) throws RemoteException, InterruptedException {
+        int counter = 0;
+        ClientData ocd;
+        while (counter < times) {
+            ocd = spartaServer.findGame(ownClientData);
+            Thread.sleep(1000);
+            if (ocd != null) {
+                return ocd;
+            }
+            counter++;
+        }
+        spartaServer.removeClient(ownClientData);
+        return null;
     }
 
     public void createConnectionToOpponent() throws RemoteException, NotBoundException, MalformedURLException, InterruptedException, AlreadyBoundException {
@@ -78,56 +111,82 @@ public class SpartaClient extends UnicastRemoteObject implements ClientServerInt
         System.out.println("Trying to access opponents RMI object at the registry");
         ClientServerInterface opponentClientServer = (ClientServerInterface) Naming.lookup("//" + opponentClientData.getIp() + "/spartaClientServer"+opponentClientData.getId());
 
-        if (ownClientData.getId() > opponentClientData.getId()) {
-            myTurn = true;
-            Thread.sleep(1200);
-            System.out.println("Making first contact to opponent");
-            String introduceMsg = "Hello! I am a sparta client";
-            System.out.println("ME: "+introduceMsg);
-            System.out.println("OPPONENT: "+opponentClientServer.introduce(introduceMsg));
+        if(ownClientData.getId() > opponentClientData.getId()) {
+            onlineTaistelu = new OnlineTaistelu(this, opponentClientServer, true, pelaaja, sc);
         } else {
-            myTurn = false;
-            System.out.println("Waiting for opponent to make contact");
+            onlineTaistelu = new OnlineTaistelu(this, opponentClientServer, false, pelaaja, sc);
+        }
+        onlineTaistelu.startIntroduce();
+
+
+        while(!(onlineTaistelu.opponentHasIntroduced() && onlineTaistelu.iHaveIntroduced())){
+            Thread.sleep(600);
         }
 
-
         /*  THE GAME LOOP */
-        while(!closeGame){
-            if(myTurn){
-                System.out.println("My turn!");
-                Thread.sleep(200);
-                //ask user input
-                System.out.print("Send message to opponent: ");
-                String msg =  "testi";
-                //create SpartaAction object to hold data
-                SpartaAction sa = new SpartaAction(0, msg);
-                //send object to opponent
-                opponentClientServer.makeAnAction(sa);
-                myTurn = false;
-                System.out.println("Opponents turn.");
+        while(!closeGame) {
+            if(onlineTaistelu.checkTurn()){
+                onlineTaistelu.executeTurn();
             }
-            Thread.sleep(100);
+            Thread.sleep(300);
         }
     }
 
 
     /* RMI Methods */
     @Override
-    public String introduce(String s) {
-        System.out.println("OPPONENT: "+s);
-        String introduceMsg = "Well hello! Nice to meet you";
-        System.out.println("ME: " + introduceMsg);
-        return introduceMsg;
+    public void introduce(String nimi, int taso, String msg) {
+        onlineTaistelu.opponentIntroduced();
+        while(!onlineTaistelu.iHaveIntroduced()){
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println("Astut sisään areenalle. Kuulet ihmisten huutoja yleisöstä.");
+        Peli.tauko(1500);
+        System.out.println("Huomaat areenan toisessa päässä vastustajasi.");
+        Peli.tauko(1500);
+        System.out.println("Hän on " + nimi + ". Tason "+ taso + " taistelija");
+        Peli.tauko(1500);
+        System.out.println("Hän huomaa sinut ja huutaa: " + msg);
+    }
+
+    @Override
+    public void updateStats(Hahmo hahmo) throws RemoteException {
+        onlineTaistelu.updateStats(hahmo);
     }
     @Override
     public ResultData makeAnAction(SpartaAction spartaAction) throws RemoteException {
         System.out.println("Opponent makes an action: "+spartaAction.getTypeOfAction());
-        System.out.println("OPPONENT: "+spartaAction.getMessage());
-        this.myTurn = true;
+
+        ResultData resultData;
+        switch(spartaAction.getTypeOfAction()){
+            case 0: // lyönti
+                onlineTaistelu.attack(spartaAction);
+                break;
+            case 1:
+                break;
+            case 2:
+                onlineTaistelu.win(spartaAction);
+                break;
+            case 3:
+                break;
+            default:
+                break;
+        }
+
+        onlineTaistelu.setTurn(true);
         return null;
     }
 
-    public void interruptGameSearch(){
-        this.interruptGameSearch = true;
+    public void userInterruptedSearch(){
+        this.userInterrupted = true;
+    }
+
+    public void closeGame(){
+        this.closeGame = true;
     }
 }

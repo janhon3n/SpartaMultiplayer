@@ -55,12 +55,17 @@ public class SpartaServer extends UnicastRemoteObject implements ServerInterface
         return null;
     }
 
-    public void removeClient(ClientData cd) throws RemoteException {
+    public void removeClient(ClientData cd) throws RemoteException{
+        Match removeThisMatch = null;
         for(Match m : matches){
             if(m.getKey().isSame(cd)){ // if client is key
-                matches.remove(m);
+                removeThisMatch = m;
             }
         }
+        if(removeThisMatch != null){
+            matches.remove(removeThisMatch);
+        }
+        System.out.println("Client from "+cd.getIp() + ":" + cd.getId() + " disconnected");
     }
 
 
